@@ -8,7 +8,7 @@ class UserProfile(db.Model):
     first_name = db.Column(db.String(80))
     last_name = db.Column(db.String(80))
     username = db.Column(db.String(80), unique=True)
-    password = db.Column(db.String(128))  # NEW password column
+    password = db.Column(db.String(128))  # password column
 
     # Constructor to initialize and hash password
     def __init__(self, first_name, last_name, username, password):

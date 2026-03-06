@@ -87,16 +87,14 @@ def flash_errors(form):
             ), 'danger')
 
 def get_uploaded_images():
-    """
-    Returns a list of image filenames from the uploads folder
-    """
+    # Points to the 'uploads' folder in your project root
+    upload_folder = os.path.join(os.getcwd(), app.config['UPLOAD_FOLDER'])
     image_files = []
-    upload_folder = app.config['UPLOAD_FOLDER']
-
-    # Iterate over files in the uploads folder
-    for filename in os.listdir(upload_folder):
-        if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-            image_files.append(filename)
+    
+    if os.path.exists(upload_folder):
+        for filename in os.listdir(upload_folder):
+            if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+                image_files.append(filename)
     return image_files
 
 
@@ -127,18 +125,17 @@ def page_not_found(error):
 @app.route('/uploads/<filename>')
 @login_required
 def get_image(filename):
-    """
-    Serve a specific uploaded image from the uploads folder
-    """
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    # This points to the 'uploads' folder in the project root
+    # Using app.root_path ensures it works regardless of where the server starts
+    upload_path = os.path.join(app.root_path, '../uploads') 
+    
+    return send_from_directory(upload_path, filename)
 
 @app.route('/files')
 @login_required
 def files():
-    """
-    Display all uploaded images in a grid
-    """
-    images = get_uploaded_images()  # get list of filenames
+    images = get_uploaded_images()
+    print("DEBUG: images list:", images)  # console output
     return render_template('files.html', images=images)
 
 @app.route('/logout')

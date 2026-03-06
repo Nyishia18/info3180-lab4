@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block content %}
-<h2>Uploaded Images</h2>
+
+{% block main %} <h2>Uploaded Images</h2>
 <div class="image-grid">
     {% for img in images %}
         <div class="image-item">
@@ -12,13 +12,22 @@
 <style>
 .image-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 15px;
+    /* Forces exactly 3 columns to match lab4 example display */
+    grid-template-columns: repeat(3, 1fr); 
+    gap: 20px;
+    padding: 20px 0;
 }
+
 .image-item img {
     width: 100%;
-    height: auto;
-    border-radius: 5px;
+    /* Set a fixed height and use cover to make them look like a uniform grid */
+    height: 250px; 
+    object-fit: cover; 
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 </style>
-{% endblock %}
+{% endblock %} ```
+
+
+
