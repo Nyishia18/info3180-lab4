@@ -3,9 +3,11 @@ from app import app, db, login_manager
 from flask import render_template, request, redirect, url_for, flash, session, abort
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.utils import secure_filename
+from flask import send_from_directory
+from app.forms import LoginForm, UploadForm
 from app.models import UserProfile
-from app.forms import LoginForm
-
+from app.forms import LoginForm, UploadForm
+from werkzeug.security import check_password_hash
 
 ###
 # Routing for your application.
@@ -24,46 +26,51 @@ def about():
 
 
 @app.route('/upload', methods=['POST', 'GET'])
+@login_required
 def upload():
-    # Instantiate your form class
+    form = UploadForm()  # Instantiate the form
 
-    # Validate file upload on submit
-    if form.validate_on_submit():
-        # Get file data and save to your uploads folder
+    if form.validate_on_submit():  # Validate form on submit
+        uploaded_file = form.file.data  # Get the uploaded file
+        filename = secure_filename(uploaded_file.filename)
+        save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        uploaded_file.save(save_path)  # Save file to uploads folder
 
-        flash('File Saved', 'success')
-        return redirect(url_for('home')) # Update this to redirect the user to a route that displays all uploaded image files
+        flash('File Saved Successfully!', 'success')
+        return redirect(url_for('upload'))  # Redirect to upload page
 
-    return render_template('upload.html')
+    return render_template('upload.html', form=form)  # Pass form to template
 
 
 @app.route('/login', methods=['POST', 'GET'])
 def login():
     form = LoginForm()
 
-    # change this to actually validate the entire form submission
-    # and not just one field
-    if form.username.data:
-        # Get the username and password values from the form.
+    # Validate entire form submission
+    if form.validate_on_submit():
+        username = form.username.data
+        password = form.password.data
 
-        # Using your model, query database for a user based on the username
-        # and password submitted. Remember you need to compare the password hash.
-        # You will need to import the appropriate function to do so.
-        # Then store the result of that query to a `user` variable so it can be
-        # passed to the login_user() method below.
+        # Query database for the user
+        user = UserProfile.query.filter_by(username=username).first()
 
-        # Gets user id, load into session
-        login_user(user)
+        # Check password hash
+        if user and check_password_hash(user.password, password):
+            login_user(user)
+            flash('You have successfully logged in!', 'success')
+            return redirect(url_for("upload"))
+        else:
+            flash('Invalid username or password.', 'danger')
 
-        # Remember to flash a message to the user
-        return redirect(url_for("home"))  # The user should be redirected to the upload form instead
     return render_template("login.html", form=form)
+
 
 # user_loader callback. This callback is used to reload the user object from
 # the user ID stored in the session
 @login_manager.user_loader
 def load_user(id):
     return db.session.execute(db.select(UserProfile).filter_by(id=id)).scalar()
+
 
 ###
 # The functions below should be applicable to all Flask apps.
@@ -76,7 +83,21 @@ def flash_errors(form):
             flash(u"Error in the %s field - %s" % (
                 getattr(form, field).label.text,
                 error
-), 'danger')
+            ), 'danger')
+
+def get_uploaded_images():
+    """
+    Returns a list of image filenames from the uploads folder
+    """
+    image_files = []
+    upload_folder = app.config['UPLOAD_FOLDER']
+
+    # Iterate over files in the uploads folder
+    for filename in os.listdir(upload_folder):
+        if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+            image_files.append(filename)
+    return image_files
+
 
 @app.route('/<file_name>.txt')
 def send_text_file(file_name):
@@ -100,3 +121,21 @@ def add_header(response):
 def page_not_found(error):
     """Custom 404 page."""
     return render_template('404.html'), 404
+
+
+@app.route('/uploads/<filename>')
+@login_required
+def get_image(filename):
+    """
+    Serve a specific uploaded image from the uploads folder
+    """
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+@app.route('/files')
+@login_required
+def files():
+    """
+    Display all uploaded images in a grid
+    """
+    images = get_uploaded_images()  # get list of filenames
+    return render_template('files.html', images=images)
