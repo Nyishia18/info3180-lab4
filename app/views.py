@@ -9,6 +9,7 @@ from app.models import UserProfile
 from app.forms import LoginForm, UploadForm
 from werkzeug.security import check_password_hash
 
+
 ###
 # Routing for your application.
 ###
@@ -139,3 +140,13 @@ def files():
     """
     images = get_uploaded_images()  # get list of filenames
     return render_template('files.html', images=images)
+
+@app.route('/logout')
+@login_required
+def logout():
+    """
+    Log out the current user, flash a message, and redirect to home
+    """
+    logout_user()  # log out the user
+    flash("You have been logged out.", "info")  # optional flash message
+    return redirect(url_for('home'))  # redirect to home page
